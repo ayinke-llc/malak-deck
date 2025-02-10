@@ -204,23 +204,6 @@ export default function Home() {
             <Separator orientation="vertical" className="mx-2 h-6" />
             <h1 className="font-medium text-sm">Document.pdf</h1>
             <Separator orientation="vertical" className="mx-2 h-6" />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => changePage(-1)}
-              disabled={pageNumber <= 1}
-            >
-              <RiArrowLeftSLine className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => changePage(1)}
-              disabled={pageNumber >= numPages}
-            >
-              <RiArrowRightSLine className="h-4 w-4" />
-            </Button>
-            <Separator orientation="vertical" className="mx-2 h-6" />
             <div className="flex items-center space-x-2">
               <Input
                 type="number"
@@ -317,12 +300,15 @@ export default function Home() {
             )}
           </div>
           
-          {/* Reading Progress Bar - Add this before the footer */}
+          {/* Reading Progress Bar - Update the styles */}
           {numPages > 0 && (
-            <div className="sticky bottom-[49px] w-full h-1 bg-muted">
+            <div className="sticky bottom-[49px] w-full h-2 bg-muted/50 shadow-inner">
               <div 
-                className="h-full bg-primary transition-all duration-300"
-                style={{ width: `${(pageNumber / numPages) * 100}%` }}
+                className="h-full bg-primary/90 transition-all duration-300 shadow-lg"
+                style={{ 
+                  width: `${(pageNumber / numPages) * 100}%`,
+                  borderRadius: '0 4px 4px 0'
+                }}
               />
             </div>
           )}
