@@ -173,8 +173,8 @@ export default function Home() {
         </div>
 
         {/* PDF Viewer Area */}
-        <div className="flex-1 overflow-auto bg-muted/50 p-8">
-          <div className="max-w-4xl mx-auto">
+        <div className="flex-1 overflow-auto bg-muted/50">
+          <div className="min-h-full flex items-center justify-center">
             {error ? (
               <div className="flex items-center justify-center h-[800px] text-destructive">
                 {error}
@@ -186,7 +186,7 @@ export default function Home() {
                 onLoadError={onDocumentLoadError}
                 options={options}
                 loading={
-                  <div className="flex items-center justify-center h-[800px]">
+                  <div className="flex items-center justify-center h-full">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
                   </div>
                 }
@@ -194,11 +194,11 @@ export default function Home() {
                 <Page 
                   pageNumber={pageNumber} 
                   scale={scale}
-                  className="shadow-lg"
+                  className="shadow-lg my-4"
                   renderTextLayer={true}
                   renderAnnotationLayer={true}
                   loading={
-                    <div className="flex items-center justify-center h-[800px]">
+                    <div className="flex items-center justify-center h-full">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
                     </div>
                   }
