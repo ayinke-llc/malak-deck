@@ -57,6 +57,20 @@ export default function Home() {
     downloadPDF();
   }, [pdfUrl]); 
 
+  // Add keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        changePage(1);
+      } else if (e.key === 'ArrowLeft') {
+        changePage(-1);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [numPages, pageNumber]); // Dependencies needed for changePage logic
+
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
     setError(null);
@@ -196,31 +210,57 @@ export default function Home() {
                 {error}
               </div>
             ) : (
-              <Document
-                file={pdfBlob}
-                onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={onDocumentLoadError}
-                options={options}
-                loading={
-                  <div className="flex items-center justify-center h-full">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-                  </div>
-                }
-                className="flex justify-center"
-              >
-                <Page 
-                  pageNumber={pageNumber} 
-                  scale={scale}
-                  className="shadow-lg"
-                  renderTextLayer={true}
-                  renderAnnotationLayer={true}
-                  loading={
-                    <div className="flex items-center justify-center h-full">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-                    </div>
-                  }
-                />
-              </Document>
+              <div className="relative flex items-center gap-4">
+                {/* Left Arrow */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative bg-background/90 hover:bg-background shadow-lg hover:shadow-xl backdrop-blur-sm z-10 h-24 w-24 rounded-full flex-shrink-0 transition-all duration-200 border-2 border-border hover:border-primary"
+                  onClick={() => changePage(-1)}
+                  disabled={pageNumber <= 1}
+                >
+                  <RiArrowLeftSLine className="h-12 w-12 text-foreground/80 hover:text-primary" />
+                </Button>
+
+                <div className="flex justify-center">
+                  <Document
+                    file={pdfBlob}
+                    onLoadSuccess={onDocumentLoadSuccess}
+                    onLoadError={onDocumentLoadError}
+                    options={options}
+                    loading={
+                      <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+                      </div>
+                    }
+                    className="flex justify-center"
+                  >
+                    <Page 
+                      pageNumber={pageNumber} 
+                      scale={scale}
+                      className="shadow-lg"
+                      renderTextLayer={true}
+                      renderAnnotationLayer={true}
+                      loading={
+                        <div className="flex items-center justify-center h-full">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+                        </div>
+                      }
+                    />
+                  </Document>
+                </div>
+
+                {/* Right Arrow */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative bg-background/90 hover:bg-background shadow-lg hover:shadow-xl backdrop-blur-sm z-10 h-24 w-24 rounded-full flex-shrink-0 transition-all duration-200 border-2 border-border hover:border-primary"
+                  onClick={() => changePage(1)}
+                  disabled={pageNumber >= numPages}
+                >
+                  <RiArrowRightSLine className="h-12 w-12 text-foreground/80 hover:text-primary" />
+                </Button>
+              </div>
             )}
           </div>
           
