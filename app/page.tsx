@@ -16,6 +16,7 @@ import {
   RiFullscreenLine
 } from '@remixicon/react';
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Configure PDF.js worker correctly
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -77,7 +78,12 @@ export default function Home() {
             >
               <Document 
                 file={pdfUrl} 
-                loading={null}
+                loading={
+                  <div className="space-y-2">
+                    <Skeleton className="h-[282px] w-[200px]" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                }
                 onLoadError={onDocumentLoadError}
               >
                 <Page 
@@ -151,8 +157,8 @@ export default function Home() {
         </div>
 
         {/* PDF Viewer Area */}
-        <div className="flex-1 overflow-auto bg-muted/50">
-          <div className="min-h-full w-full flex items-center justify-center p-4">
+        <div className="flex-1 overflow-auto bg-muted/50 relative flex flex-col">
+          <div className="flex-1 w-full flex items-center justify-center p-4 pb-16">
             {error ? (
               <div className="flex items-center justify-center h-[800px] text-destructive">
                 {error}
@@ -185,6 +191,17 @@ export default function Home() {
               </Document>
             )}
           </div>
+          
+          {/* Footer */}
+          <footer className="sticky bottom-0 left-0 right-0 p-2 bg-background/80 backdrop-blur-sm border-t flex items-center justify-between text-sm text-muted-foreground">
+            <div>
+              Powered by Malak
+            </div>
+            <div className="flex gap-4">
+              <a href="/terms" className="hover:text-foreground">Terms & Conditions</a>
+              <a href="/privacy" className="hover:text-foreground">Privacy Policy</a>
+            </div>
+          </footer>
         </div>
       </main>
     </div>
