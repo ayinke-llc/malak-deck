@@ -13,7 +13,9 @@ import {
   RiDownloadLine, 
   RiAddLine, 
   RiSubtractLine,
-  RiFullscreenLine
+  RiFullscreenLine,
+  RiMenuFoldLine,
+  RiMenuUnfoldLine
 } from '@remixicon/react';
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,6 +37,7 @@ export default function Home() {
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
+  const [showPreview, setShowPreview] = useState(false);
   
   const pdfUrl = 'https://s22.q4cdn.com/959853165/files/doc_financials/2024/ar/Netflix-10-K-01272025.pdf';
 
@@ -148,13 +151,7 @@ export default function Home() {
   return (
     <div className="flex h-screen bg-background">
       {/* Left Sidebar - Thumbnails */}
-      <aside className="w-[240px] border-r flex flex-col">
-        {/* Document Title */}
-        <div className="p-4 border-b">
-          <h1 className="font-medium truncate">Document.pdf</h1>
-        </div>
-        
-        {/* Thumbnails Container */}
+      <aside className={`${showPreview ? 'w-[240px]' : 'w-0'} border-r flex flex-col transition-all duration-300 overflow-hidden`}>
         <div className="flex-1 overflow-y-auto">
           {numPages > 0 && [...Array(numPages)].map((_, index) => (
             <div 
@@ -192,6 +189,21 @@ export default function Home() {
         <div className="h-14 border-b px-4 flex items-center justify-between">
           {/* Left Controls */}
           <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowPreview(!showPreview)}
+              className="mr-2"
+            >
+              {showPreview ? (
+                <RiMenuFoldLine className="h-4 w-4" />
+              ) : (
+                <RiMenuUnfoldLine className="h-4 w-4" />
+              )}
+            </Button>
+            <Separator orientation="vertical" className="mx-2 h-6" />
+            <h1 className="font-medium text-sm">Document.pdf</h1>
+            <Separator orientation="vertical" className="mx-2 h-6" />
             <Button
               variant="ghost"
               size="icon"
