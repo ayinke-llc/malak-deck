@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -32,9 +32,30 @@ export default function Home() {
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(2.5);
   const [error, setError] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Sample PDF URL - replace with your PDF
   const pdfUrl = 'https://s22.q4cdn.com/959853165/files/doc_financials/2024/ar/Netflix-10-K-01272025.pdf';
+
+  useEffect(() => {
+    const downloadPDF = async () => {
+      try {
+        const response = await fetch(pdfUrl);
+        if (!response.ok) throw new Error('Failed to download PDF');
+        
+        const blob = await response.blob();
+        setPdfBlob(blob);
+        setError(null);
+      } catch (err) {
+        console.error('Error downloading PDF:', err);
+        setError('Error downloading PDF. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    downloadPDF();
+  }, [pdfUrl]); 
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
@@ -58,6 +79,17 @@ export default function Home() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+          <p className="text-muted-foreground">Downloading PDF...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-background">
       {/* Left Sidebar - Thumbnails */}
@@ -77,7 +109,7 @@ export default function Home() {
               onClick={() => setPageNumber(index + 1)}
             >
               <Document 
-                file={pdfUrl} 
+                file={pdfBlob} 
                 loading={
                   <div className="space-y-2">
                     <Skeleton className="h-[282px] w-[200px]" />
@@ -165,7 +197,7 @@ export default function Home() {
               </div>
             ) : (
               <Document
-                file={pdfUrl}
+                file={pdfBlob}
                 onLoadSuccess={onDocumentLoadSuccess}
                 onLoadError={onDocumentLoadError}
                 options={options}
