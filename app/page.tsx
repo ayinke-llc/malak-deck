@@ -301,6 +301,24 @@ export default function Home() {
         ]
       },
       {
+        id: 'fullscreen',
+        text: 'Toggle fullscreen mode for a more immersive reading experience',
+        attachTo: {
+          element: '.fullscreen-button',
+          on: 'bottom'
+        },
+        buttons: [
+          {
+            text: 'Back',
+            action: () => newTour.back()
+          },
+          {
+            text: 'Next',
+            action: () => newTour.next()
+          }
+        ]
+      },
+      {
         id: 'theme',
         text: 'Switch between light and dark mode for comfortable reading',
         attachTo: {
@@ -462,23 +480,23 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShowPreview(!showPreview)}
-          className="mr-2 flex-shrink-0 sidebar-toggle"
-        >
-          {showPreview ? (
-            <RiMenuFoldLine className="h-4 w-4" />
-          ) : (
-            <RiMenuUnfoldLine className="h-4 w-4" />
-          )}
-        </Button>
       </aside>
 
       <main className="flex-1 flex flex-col w-full overflow-hidden">
         <div className="h-12 md:h-14 border-b px-2 md:px-4 flex items-center justify-between">
           <div className="flex items-center space-x-2 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowPreview(!showPreview)}
+              className="mr-2 flex-shrink-0 sidebar-toggle"
+            >
+              {showPreview ? (
+                <RiMenuFoldLine className="h-4 w-4" />
+              ) : (
+                <RiMenuUnfoldLine className="h-4 w-4" />
+              )}
+            </Button>
             <Separator orientation="vertical" className="mx-2 h-6 hidden md:block" />
             <h1 className="font-medium text-sm truncate hidden md:block">Document.pdf</h1>
             <Separator orientation="vertical" className="mx-2 h-6" />
@@ -516,7 +534,7 @@ export default function Home() {
               variant="ghost"
               size="icon"
               onClick={toggleFullscreen}
-              className="hidden md:inline-flex h-8 w-8"
+              className="hidden md:inline-flex h-8 w-8 fullscreen-button"
             >
               <RiFullscreenLine className="h-4 w-4" />
             </Button>
