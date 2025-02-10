@@ -19,3 +19,20 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.react-pdf__Page {
+  margin: 0 auto;
+  background-color: white;
+  border-radius: 0.5rem;
+}
+
+.react-pdf__Page canvas {
+  border-radius: 0.5rem;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .react-pdf__Page {
+    background-color: rgb(31, 41, 55);
+  }
+}

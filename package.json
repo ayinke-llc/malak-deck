@@ -1,5 +1,5 @@
 {
-  "name": "malak-deck-landing",
+  "name": "malak-deck",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,9 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.2.1",
+    "next": "15.1.6",
+    "pdfjs-dist": "3.11.174",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "next": "15.1.6"
+    "react-pdf": "^9.2.1"
   },
   "devDependencies": {
     "typescript": "^5",
