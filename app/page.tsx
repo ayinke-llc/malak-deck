@@ -243,8 +243,16 @@ export default function Home() {
 
           {/* Right Controls - Simplified for mobile */}
           <div className="flex items-center space-x-2 flex-shrink-0">
-            <Button variant="ghost" size="icon" asChild className="md:block">
-              <a href={pdfUrl} download>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8"
+            >
+              <a 
+                href={pdfUrl} 
+                download 
+                className="flex items-center justify-center"
+              >
                 <RiDownloadLine className="h-4 w-4" />
               </a>
             </Button>
@@ -252,7 +260,7 @@ export default function Home() {
               variant="ghost"
               size="icon"
               onClick={toggleFullscreen}
-              className="hidden md:inline-flex"
+              className="hidden md:inline-flex h-8 w-8"
             >
               <RiFullscreenLine className="h-4 w-4" />
             </Button>
