@@ -118,8 +118,8 @@ export default function Home() {
         const containerWidth = container.clientWidth - (isMobile ? 32 : 160);
         const baseScale = containerWidth / 600;
         
-        // On desktop, limit the maximum scale to prevent the PDF from becoming too large
-        setScale(isMobile ? Math.min(baseScale, 0.8) : Math.min(baseScale, 1.5));
+        // Larger scale for desktop, smaller for mobile
+        setScale(isMobile ? Math.min(baseScale, 0.8) : Math.min(baseScale, 2.0));
       }
     }
 
@@ -261,25 +261,25 @@ export default function Home() {
         </div>
 
         {/* PDF Viewer Area - Update container styles */}
-        <div className="flex-1 w-full flex items-center justify-center p-2 md:p-4 pb-16 pdf-container overflow-hidden">
+        <div className="flex-1 w-full flex items-center justify-center p-2 md:p-8 pb-16 pdf-container overflow-hidden">
           {error ? (
             <div className="flex items-center justify-center h-[800px] text-destructive">
               {error}
             </div>
           ) : (
-            <div className="relative flex items-center gap-1 md:gap-4 w-full max-w-[1200px] mx-auto">
-              {/* Navigation buttons stay the same */}
+            <div className="relative flex items-center gap-1 md:gap-8 w-full max-w-[1600px] mx-auto">
+              {/* Navigation buttons - make larger on desktop */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative bg-background/90 hover:bg-background shadow-lg hover:shadow-xl backdrop-blur-sm z-10 h-8 w-8 md:h-24 md:w-24 rounded-full flex-shrink-0 transition-all duration-200 border-2 border-border hover:border-primary"
+                className="relative bg-background/90 hover:bg-background shadow-lg hover:shadow-xl backdrop-blur-sm z-10 h-8 w-8 md:h-32 md:w-32 rounded-full flex-shrink-0 transition-all duration-200 border-2 border-border hover:border-primary"
                 onClick={() => changePage(-1)}
                 disabled={pageNumber <= 1}
               >
-                <RiArrowLeftSLine className="h-4 w-4 md:h-12 md:w-12 text-foreground/80 hover:text-primary" />
+                <RiArrowLeftSLine className="h-4 w-4 md:h-16 md:w-16 text-foreground/80 hover:text-primary" />
               </Button>
 
-              {/* PDF Container - Add better max-width handling */}
+              {/* PDF Container - increase max width */}
               <div className="flex justify-center max-w-full overflow-hidden flex-1">
                 <Document
                   file={pdfBlob}
@@ -291,12 +291,12 @@ export default function Home() {
                       <div className="animate-spin rounded-full h-8 w-8 md:h-12 md:w-12 border-b-2 border-primary" />
                     </div>
                   }
-                  className="flex justify-center w-full max-w-3xl mx-auto"
+                  className="flex justify-center w-full max-w-5xl mx-auto"
                 >
                   <Page 
                     pageNumber={pageNumber} 
                     scale={scale}
-                    className="shadow-lg max-w-full"
+                    className="shadow-xl max-w-full"
                     renderTextLayer={true}
                     renderAnnotationLayer={true}
                     loading={
@@ -308,15 +308,15 @@ export default function Home() {
                 </Document>
               </div>
 
-              {/* Right navigation button stays the same */}
+              {/* Right navigation button - match left button size */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative bg-background/90 hover:bg-background shadow-lg hover:shadow-xl backdrop-blur-sm z-10 h-8 w-8 md:h-24 md:w-24 rounded-full flex-shrink-0 transition-all duration-200 border-2 border-border hover:border-primary"
+                className="relative bg-background/90 hover:bg-background shadow-lg hover:shadow-xl backdrop-blur-sm z-10 h-8 w-8 md:h-32 md:w-32 rounded-full flex-shrink-0 transition-all duration-200 border-2 border-border hover:border-primary"
                 onClick={() => changePage(1)}
                 disabled={pageNumber >= numPages}
               >
-                <RiArrowRightSLine className="h-4 w-4 md:h-12 md:w-12 text-foreground/80 hover:text-primary" />
+                <RiArrowRightSLine className="h-4 w-4 md:h-16 md:w-16 text-foreground/80 hover:text-primary" />
               </Button>
             </div>
           )}
