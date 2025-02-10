@@ -19,6 +19,7 @@ import {
 } from '@remixicon/react';
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMediaQuery } from '@/hooks/use-media-query';  
 
 // Configure PDF.js worker correctly
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -32,7 +33,6 @@ const options = {
 export default function Home() {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
-  const [scale, setScale] = useState<number>(2.5);
   const [error, setError] = useState<string | null>(null);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,6 +40,9 @@ export default function Home() {
   const [showPreview, setShowPreview] = useState(false);
   
   const pdfUrl = 'https://s22.q4cdn.com/959853165/files/doc_financials/2024/ar/Netflix-10-K-01272025.pdf';
+
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const [scale, setScale] = useState<number>(1.0);
 
   useEffect(() => {
     const downloadPDF = async () => {
@@ -107,6 +110,24 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [numPages, pageNumber]); // Dependencies needed for changePage logic
 
+  // Update the scale calculation effect
+  useEffect(() => {
+    function updateScale() {
+      const container = document.querySelector('.pdf-container');
+      if (container && pdfBlob) {
+        const containerWidth = container.clientWidth - (isMobile ? 32 : 160);
+        const baseScale = containerWidth / 600;
+        
+        // On desktop, limit the maximum scale to prevent the PDF from becoming too large
+        setScale(isMobile ? Math.min(baseScale, 0.8) : Math.min(baseScale, 1.5));
+      }
+    }
+
+    window.addEventListener('resize', updateScale);
+    updateScale();
+    return () => window.removeEventListener('resize', updateScale);
+  }, [isMobile, pdfBlob]);
+
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
     setError(null);
@@ -150,8 +171,8 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Left Sidebar - Thumbnails */}
-      <aside className={`${showPreview ? 'w-[240px]' : 'w-0'} border-r flex flex-col transition-all duration-300 overflow-hidden`}>
+      {/* Left Sidebar - Update mobile styles */}
+      <aside className={`${showPreview ? 'w-[240px] md:w-[240px]' : 'w-0'} border-r flex flex-col transition-all duration-300 overflow-hidden fixed md:relative z-20 bg-background h-full`}>
         <div className="flex-1 overflow-y-auto">
           {numPages > 0 && [...Array(numPages)].map((_, index) => (
             <div 
@@ -183,17 +204,17 @@ export default function Home() {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col">
-        {/* Top Toolbar */}
-        <div className="h-14 border-b px-4 flex items-center justify-between">
-          {/* Left Controls */}
-          <div className="flex items-center space-x-2">
+      {/* Main Content - Add max-width for desktop */}
+      <main className="flex-1 flex flex-col w-full overflow-hidden">
+        {/* Top Toolbar - Make more compact on mobile */}
+        <div className="h-12 md:h-14 border-b px-2 md:px-4 flex items-center justify-between">
+          {/* Left Controls - Simplified for mobile */}
+          <div className="flex items-center space-x-2 min-w-0">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setShowPreview(!showPreview)}
-              className="mr-2"
+              className="mr-2 flex-shrink-0"
             >
               {showPreview ? (
                 <RiMenuFoldLine className="h-4 w-4" />
@@ -201,10 +222,10 @@ export default function Home() {
                 <RiMenuUnfoldLine className="h-4 w-4" />
               )}
             </Button>
+            <Separator orientation="vertical" className="mx-2 h-6 hidden md:block" />
+            <h1 className="font-medium text-sm truncate hidden md:block">Document.pdf</h1>
             <Separator orientation="vertical" className="mx-2 h-6" />
-            <h1 className="font-medium text-sm">Document.pdf</h1>
-            <Separator orientation="vertical" className="mx-2 h-6" />
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-shrink-0">
               <Input
                 type="number"
                 value={pageNumber}
@@ -216,13 +237,13 @@ export default function Home() {
                 }}
                 className="w-16 h-8"
               />
-              <span className="text-muted-foreground">of {numPages}</span>
+              <span className="text-muted-foreground whitespace-nowrap">of {numPages}</span>
             </div>
           </div>
 
-          {/* Right Controls */}
-          <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="icon" asChild>
+          {/* Right Controls - Simplified for mobile */}
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            <Button variant="ghost" size="icon" asChild className="md:block">
               <a href={pdfUrl} download>
                 <RiDownloadLine className="h-4 w-4" />
               </a>
@@ -231,6 +252,7 @@ export default function Home() {
               variant="ghost"
               size="icon"
               onClick={toggleFullscreen}
+              className="hidden md:inline-flex"
             >
               <RiFullscreenLine className="h-4 w-4" />
             </Button>
@@ -238,97 +260,97 @@ export default function Home() {
           </div>
         </div>
 
-        {/* PDF Viewer Area */}
-        <div className="flex-1 overflow-auto bg-muted/50 relative flex flex-col">
-          <div className="flex-1 w-full flex items-center justify-center p-4 pb-16">
-            {error ? (
-              <div className="flex items-center justify-center h-[800px] text-destructive">
-                {error}
-              </div>
-            ) : (
-              <div className="relative flex items-center gap-4">
-                {/* Left Arrow */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative bg-background/90 hover:bg-background shadow-lg hover:shadow-xl backdrop-blur-sm z-10 h-24 w-24 rounded-full flex-shrink-0 transition-all duration-200 border-2 border-border hover:border-primary"
-                  onClick={() => changePage(-1)}
-                  disabled={pageNumber <= 1}
-                >
-                  <RiArrowLeftSLine className="h-12 w-12 text-foreground/80 hover:text-primary" />
-                </Button>
+        {/* PDF Viewer Area - Update container styles */}
+        <div className="flex-1 w-full flex items-center justify-center p-2 md:p-4 pb-16 pdf-container overflow-hidden">
+          {error ? (
+            <div className="flex items-center justify-center h-[800px] text-destructive">
+              {error}
+            </div>
+          ) : (
+            <div className="relative flex items-center gap-1 md:gap-4 w-full max-w-[1200px] mx-auto">
+              {/* Navigation buttons stay the same */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative bg-background/90 hover:bg-background shadow-lg hover:shadow-xl backdrop-blur-sm z-10 h-8 w-8 md:h-24 md:w-24 rounded-full flex-shrink-0 transition-all duration-200 border-2 border-border hover:border-primary"
+                onClick={() => changePage(-1)}
+                disabled={pageNumber <= 1}
+              >
+                <RiArrowLeftSLine className="h-4 w-4 md:h-12 md:w-12 text-foreground/80 hover:text-primary" />
+              </Button>
 
-                <div className="flex justify-center">
-                  <Document
-                    file={pdfBlob}
-                    onLoadSuccess={onDocumentLoadSuccess}
-                    onLoadError={onDocumentLoadError}
-                    options={options}
+              {/* PDF Container - Add better max-width handling */}
+              <div className="flex justify-center max-w-full overflow-hidden flex-1">
+                <Document
+                  file={pdfBlob}
+                  onLoadSuccess={onDocumentLoadSuccess}
+                  onLoadError={onDocumentLoadError}
+                  options={options}
+                  loading={
+                    <div className="flex items-center justify-center h-full">
+                      <div className="animate-spin rounded-full h-8 w-8 md:h-12 md:w-12 border-b-2 border-primary" />
+                    </div>
+                  }
+                  className="flex justify-center w-full max-w-3xl mx-auto"
+                >
+                  <Page 
+                    pageNumber={pageNumber} 
+                    scale={scale}
+                    className="shadow-lg max-w-full"
+                    renderTextLayer={true}
+                    renderAnnotationLayer={true}
                     loading={
                       <div className="flex items-center justify-center h-full">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+                        <div className="animate-spin rounded-full h-8 w-8 md:h-12 md:w-12 border-b-2 border-primary" />
                       </div>
                     }
-                    className="flex justify-center"
-                  >
-                    <Page 
-                      pageNumber={pageNumber} 
-                      scale={scale}
-                      className="shadow-lg"
-                      renderTextLayer={true}
-                      renderAnnotationLayer={true}
-                      loading={
-                        <div className="flex items-center justify-center h-full">
-                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-                        </div>
-                      }
-                    />
-                  </Document>
-                </div>
-
-                {/* Right Arrow */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative bg-background/90 hover:bg-background shadow-lg hover:shadow-xl backdrop-blur-sm z-10 h-24 w-24 rounded-full flex-shrink-0 transition-all duration-200 border-2 border-border hover:border-primary"
-                  onClick={() => changePage(1)}
-                  disabled={pageNumber >= numPages}
-                >
-                  <RiArrowRightSLine className="h-12 w-12 text-foreground/80 hover:text-primary" />
-                </Button>
+                  />
+                </Document>
               </div>
-            )}
-          </div>
-          
-          {/* Reading Progress Bar - Update the styles */}
-          {numPages > 0 && (
-            <div className="sticky bottom-[49px] w-full h-2 bg-muted/50 shadow-inner">
-              <div 
-                className="h-full bg-primary/90 transition-all duration-300 shadow-lg"
-                style={{ 
-                  width: `${(pageNumber / numPages) * 100}%`,
-                  borderRadius: '0 4px 4px 0'
-                }}
-              />
+
+              {/* Right navigation button stays the same */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative bg-background/90 hover:bg-background shadow-lg hover:shadow-xl backdrop-blur-sm z-10 h-8 w-8 md:h-24 md:w-24 rounded-full flex-shrink-0 transition-all duration-200 border-2 border-border hover:border-primary"
+                onClick={() => changePage(1)}
+                disabled={pageNumber >= numPages}
+              >
+                <RiArrowRightSLine className="h-4 w-4 md:h-12 md:w-12 text-foreground/80 hover:text-primary" />
+              </Button>
             </div>
           )}
-          
-          {/* Footer */}
-          <footer className="sticky bottom-0 left-0 right-0 p-2 bg-background/80 backdrop-blur-sm border-t flex items-center justify-between text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span>Powered by Malak</span>
-              {numPages > 0 && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
-                  {((pageNumber / numPages) * 100).toFixed(0)}% complete
-                </span>
-              )}
-            </div>
-            <div className="flex gap-4">
-              <a href="/terms" className="hover:text-foreground">Terms & Conditions</a>
-              <a href="/privacy" className="hover:text-foreground">Privacy Policy</a>
-            </div>
-          </footer>
         </div>
+        
+        {/* Reading Progress Bar - Update the styles */}
+        {numPages > 0 && (
+          <div className="sticky bottom-[49px] w-full h-2 bg-muted/50 shadow-inner">
+            <div 
+              className="h-full bg-primary/90 transition-all duration-300 shadow-lg"
+              style={{ 
+                width: `${(pageNumber / numPages) * 100}%`,
+                borderRadius: '0 4px 4px 0'
+              }}
+            />
+          </div>
+        )}
+        
+        {/* Footer - Make more compact on mobile */}
+        <footer className="sticky bottom-0 left-0 right-0 p-1 md:p-2 bg-background/80 backdrop-blur-sm border-t flex items-center justify-between text-xs md:text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="hidden md:inline">Powered by</span>
+            <span>Malak</span>
+            {numPages > 0 && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
+                {((pageNumber / numPages) * 100).toFixed(0)}%
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2 md:gap-4">
+            <a href="/terms" className="hover:text-foreground">Terms</a>
+            <a href="/privacy" className="hover:text-foreground">Privacy</a>
+          </div>
+        </footer>
       </main>
     </div>
   );
