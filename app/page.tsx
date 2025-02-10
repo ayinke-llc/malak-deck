@@ -425,6 +425,19 @@ export default function Home() {
     }
   };
 
+  // Add this useEffect after the other useEffects
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Check if the pressed key is "?" and no input element is focused
+      if (e.key === '?' && document.activeElement?.tagName !== 'INPUT') {
+        startTourManually();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [tour]); // Add tour as a dependency since we use startTourManually
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
