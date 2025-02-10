@@ -34,6 +34,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [downloadProgress, setDownloadProgress] = useState<number>(0);
   
   const pdfUrl = 'https://s22.q4cdn.com/959853165/files/doc_financials/2024/ar/Netflix-10-K-01272025.pdf';
 
@@ -43,7 +44,39 @@ export default function Home() {
         const response = await fetch(pdfUrl);
         if (!response.ok) throw new Error('Failed to download PDF');
         
-        const blob = await response.blob();
+        // Get the total size of the file
+        const contentLength = response.headers.get('content-length');
+        const total = contentLength ? parseInt(contentLength, 10) : 0;
+        
+        // Create a new response with a custom reader to track progress
+        const reader = response.body?.getReader();
+        const chunks: Uint8Array[] = [];
+        let receivedLength = 0;
+
+        // Read the stream
+        while(true && reader) {
+          const {done, value} = await reader.read();
+          
+          if (done) break;
+          
+          chunks.push(value);
+          receivedLength += value.length;
+          
+          // Calculate and set progress
+          if (total) {
+            setDownloadProgress((receivedLength / total) * 100);
+          }
+        }
+
+        // Combine all chunks into a single Uint8Array
+        const chunksAll = new Uint8Array(receivedLength);
+        let position = 0;
+        for(const chunk of chunks) {
+          chunksAll.set(chunk, position);
+          position += chunk.length;
+        }
+        
+        const blob = new Blob([chunksAll], { type: 'application/pdf' });
         setPdfBlob(blob);
         setError(null);
       } catch (err) {
@@ -55,7 +88,7 @@ export default function Home() {
     };
 
     downloadPDF();
-  }, [pdfUrl]); 
+  }, [pdfUrl]);
 
   // Add keyboard navigation
   useEffect(() => {
@@ -96,9 +129,17 @@ export default function Home() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-4 w-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-          <p className="text-muted-foreground">Downloading PDF...</p>
+          <div className="w-full bg-muted rounded-full h-2.5 dark:bg-muted">
+            <div 
+              className="bg-primary h-2.5 rounded-full transition-all duration-300" 
+              style={{ width: `${downloadProgress}%` }}
+            ></div>
+          </div>
+          <p className="text-muted-foreground">
+            Downloading PDF... {downloadProgress.toFixed(0)}%
+          </p>
         </div>
       </div>
     );
@@ -264,10 +305,25 @@ export default function Home() {
             )}
           </div>
           
+          {/* Reading Progress Bar - Add this before the footer */}
+          {numPages > 0 && (
+            <div className="sticky bottom-[49px] w-full h-1 bg-muted">
+              <div 
+                className="h-full bg-primary transition-all duration-300"
+                style={{ width: `${(pageNumber / numPages) * 100}%` }}
+              />
+            </div>
+          )}
+          
           {/* Footer */}
           <footer className="sticky bottom-0 left-0 right-0 p-2 bg-background/80 backdrop-blur-sm border-t flex items-center justify-between text-sm text-muted-foreground">
-            <div>
-              Powered by Malak
+            <div className="flex items-center gap-2">
+              <span>Powered by Malak</span>
+              {numPages > 0 && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
+                  {((pageNumber / numPages) * 100).toFixed(0)}% complete
+                </span>
+              )}
             </div>
             <div className="flex gap-4">
               <a href="/terms" className="hover:text-foreground">Terms & Conditions</a>
