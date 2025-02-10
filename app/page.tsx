@@ -12,8 +12,10 @@ import {
   RiArrowRightSLine, 
   RiDownloadLine, 
   RiAddLine, 
-  RiSubtractLine 
+  RiSubtractLine,
+  RiFullscreenLine
 } from '@remixicon/react';
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 // Configure PDF.js worker correctly
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -49,6 +51,14 @@ export default function Home() {
 
   function changeScale(delta: number) {
     setScale(prevScale => Math.min(Math.max(0.5, prevScale + delta), 2.0));
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
   }
 
   return (
@@ -151,6 +161,14 @@ export default function Home() {
                 <RiDownloadLine className="h-4 w-4" />
               </a>
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleFullscreen}
+            >
+              <RiFullscreenLine className="h-4 w-4" />
+            </Button>
+            <ThemeSwitcher />
           </div>
         </div>
 
