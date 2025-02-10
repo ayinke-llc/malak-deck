@@ -29,7 +29,7 @@ const options = {
 export default function Home() {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
-  const [scale, setScale] = useState<number>(1.0);
+  const [scale, setScale] = useState<number>(2.5);
   const [error, setError] = useState<string | null>(null);
   
   // Sample PDF URL - replace with your PDF
@@ -47,10 +47,6 @@ export default function Home() {
 
   function changePage(offset: number) {
     setPageNumber(prevPageNumber => Math.min(Math.max(1, prevPageNumber + offset), numPages));
-  }
-
-  function changeScale(delta: number) {
-    setScale(prevScale => Math.min(Math.max(0.5, prevScale + delta), 2.0));
   }
 
   function toggleFullscreen() {
@@ -138,24 +134,6 @@ export default function Home() {
 
           {/* Right Controls */}
           <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => changeScale(-0.1)}
-              >
-                <RiSubtractLine className="h-4 w-4" />
-              </Button>
-              <span className="w-16 text-center">{Math.round(scale * 100)}%</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => changeScale(0.1)}
-              >
-                <RiAddLine className="h-4 w-4" />
-              </Button>
-            </div>
-            <Separator orientation="vertical" className="mx-2 h-6" />
             <Button variant="ghost" size="icon" asChild>
               <a href={pdfUrl} download>
                 <RiDownloadLine className="h-4 w-4" />
@@ -174,7 +152,7 @@ export default function Home() {
 
         {/* PDF Viewer Area */}
         <div className="flex-1 overflow-auto bg-muted/50">
-          <div className="min-h-full flex items-center justify-center">
+          <div className="min-h-full w-full flex items-center justify-center p-4">
             {error ? (
               <div className="flex items-center justify-center h-[800px] text-destructive">
                 {error}
@@ -190,11 +168,12 @@ export default function Home() {
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
                   </div>
                 }
+                className="flex justify-center"
               >
                 <Page 
                   pageNumber={pageNumber} 
                   scale={scale}
-                  className="shadow-lg my-4"
+                  className="shadow-lg"
                   renderTextLayer={true}
                   renderAnnotationLayer={true}
                   loading={
