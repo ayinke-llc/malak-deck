@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -12,8 +12,11 @@ import {
   RiArrowRightSLine, 
   RiDownloadLine, 
   RiAddLine, 
-  RiSubtractLine 
+  RiSubtractLine,
+  RiFullscreenLine
 } from '@remixicon/react';
+import { ThemeSwitcher } from "@/components/theme-switcher";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Configure PDF.js worker correctly
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -27,11 +30,46 @@ const options = {
 export default function Home() {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
-  const [scale, setScale] = useState<number>(1.0);
+  const [scale, setScale] = useState<number>(2.5);
   const [error, setError] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Sample PDF URL - replace with your PDF
   const pdfUrl = 'https://s22.q4cdn.com/959853165/files/doc_financials/2024/ar/Netflix-10-K-01272025.pdf';
+
+  useEffect(() => {
+    const downloadPDF = async () => {
+      try {
+        const response = await fetch(pdfUrl);
+        if (!response.ok) throw new Error('Failed to download PDF');
+        
+        const blob = await response.blob();
+        setPdfBlob(blob);
+        setError(null);
+      } catch (err) {
+        console.error('Error downloading PDF:', err);
+        setError('Error downloading PDF. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    downloadPDF();
+  }, [pdfUrl]); 
+
+  // Add keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        changePage(1);
+      } else if (e.key === 'ArrowLeft') {
+        changePage(-1);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [numPages, pageNumber]); // Dependencies needed for changePage logic
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
@@ -47,8 +85,23 @@ export default function Home() {
     setPageNumber(prevPageNumber => Math.min(Math.max(1, prevPageNumber + offset), numPages));
   }
 
-  function changeScale(delta: number) {
-    setScale(prevScale => Math.min(Math.max(0.5, prevScale + delta), 2.0));
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+          <p className="text-muted-foreground">Downloading PDF...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -70,8 +123,13 @@ export default function Home() {
               onClick={() => setPageNumber(index + 1)}
             >
               <Document 
-                file={pdfUrl} 
-                loading={null}
+                file={pdfBlob} 
+                loading={
+                  <div className="space-y-2">
+                    <Skeleton className="h-[282px] w-[200px]" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                }
                 onLoadError={onDocumentLoadError}
               >
                 <Page 
@@ -128,66 +186,94 @@ export default function Home() {
 
           {/* Right Controls */}
           <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => changeScale(-0.1)}
-              >
-                <RiSubtractLine className="h-4 w-4" />
-              </Button>
-              <span className="w-16 text-center">{Math.round(scale * 100)}%</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => changeScale(0.1)}
-              >
-                <RiAddLine className="h-4 w-4" />
-              </Button>
-            </div>
-            <Separator orientation="vertical" className="mx-2 h-6" />
             <Button variant="ghost" size="icon" asChild>
               <a href={pdfUrl} download>
                 <RiDownloadLine className="h-4 w-4" />
               </a>
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleFullscreen}
+            >
+              <RiFullscreenLine className="h-4 w-4" />
+            </Button>
+            <ThemeSwitcher />
           </div>
         </div>
 
         {/* PDF Viewer Area */}
-        <div className="flex-1 overflow-auto bg-muted/50 p-8">
-          <div className="max-w-4xl mx-auto">
+        <div className="flex-1 overflow-auto bg-muted/50 relative flex flex-col">
+          <div className="flex-1 w-full flex items-center justify-center p-4 pb-16">
             {error ? (
               <div className="flex items-center justify-center h-[800px] text-destructive">
                 {error}
               </div>
             ) : (
-              <Document
-                file={pdfUrl}
-                onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={onDocumentLoadError}
-                options={options}
-                loading={
-                  <div className="flex items-center justify-center h-[800px]">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-                  </div>
-                }
-              >
-                <Page 
-                  pageNumber={pageNumber} 
-                  scale={scale}
-                  className="shadow-lg"
-                  renderTextLayer={true}
-                  renderAnnotationLayer={true}
-                  loading={
-                    <div className="flex items-center justify-center h-[800px]">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-                    </div>
-                  }
-                />
-              </Document>
+              <div className="relative flex items-center gap-4">
+                {/* Left Arrow */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative bg-background/90 hover:bg-background shadow-lg hover:shadow-xl backdrop-blur-sm z-10 h-24 w-24 rounded-full flex-shrink-0 transition-all duration-200 border-2 border-border hover:border-primary"
+                  onClick={() => changePage(-1)}
+                  disabled={pageNumber <= 1}
+                >
+                  <RiArrowLeftSLine className="h-12 w-12 text-foreground/80 hover:text-primary" />
+                </Button>
+
+                <div className="flex justify-center">
+                  <Document
+                    file={pdfBlob}
+                    onLoadSuccess={onDocumentLoadSuccess}
+                    onLoadError={onDocumentLoadError}
+                    options={options}
+                    loading={
+                      <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+                      </div>
+                    }
+                    className="flex justify-center"
+                  >
+                    <Page 
+                      pageNumber={pageNumber} 
+                      scale={scale}
+                      className="shadow-lg"
+                      renderTextLayer={true}
+                      renderAnnotationLayer={true}
+                      loading={
+                        <div className="flex items-center justify-center h-full">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+                        </div>
+                      }
+                    />
+                  </Document>
+                </div>
+
+                {/* Right Arrow */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative bg-background/90 hover:bg-background shadow-lg hover:shadow-xl backdrop-blur-sm z-10 h-24 w-24 rounded-full flex-shrink-0 transition-all duration-200 border-2 border-border hover:border-primary"
+                  onClick={() => changePage(1)}
+                  disabled={pageNumber >= numPages}
+                >
+                  <RiArrowRightSLine className="h-12 w-12 text-foreground/80 hover:text-primary" />
+                </Button>
+              </div>
             )}
           </div>
+          
+          {/* Footer */}
+          <footer className="sticky bottom-0 left-0 right-0 p-2 bg-background/80 backdrop-blur-sm border-t flex items-center justify-between text-sm text-muted-foreground">
+            <div>
+              Powered by Malak
+            </div>
+            <div className="flex gap-4">
+              <a href="/terms" className="hover:text-foreground">Terms & Conditions</a>
+              <a href="/privacy" className="hover:text-foreground">Privacy Policy</a>
+            </div>
+          </footer>
         </div>
       </main>
     </div>
