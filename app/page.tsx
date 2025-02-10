@@ -15,11 +15,15 @@ import {
   RiSubtractLine,
   RiFullscreenLine,
   RiMenuFoldLine,
-  RiMenuUnfoldLine
+  RiMenuUnfoldLine,
+  RiQuestionLine
 } from '@remixicon/react';
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMediaQuery } from '@/hooks/use-media-query';  
+import Shepherd from 'shepherd.js';
+import type { Tour } from 'shepherd.js';
+import 'shepherd.js/dist/css/shepherd.css';
 
 // Configure PDF.js worker correctly
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -44,6 +48,8 @@ export default function Home() {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [scale, setScale] = useState<number>(1.0);
 
+  const [tour, setTour] = useState<Tour | null>(null);
+  
   useEffect(() => {
     const downloadPDF = async () => {
       try {
@@ -150,6 +156,257 @@ export default function Home() {
     }
   }
 
+  useEffect(() => {
+    const newTour = new Shepherd.Tour({
+      useModalOverlay: true,
+      defaultStepOptions: {
+        classes: 'shadow-lg rounded-lg border bg-background text-foreground',
+        modalOverlayOpeningPadding: 4,
+        scrollTo: true,
+        cancelIcon: {
+          enabled: true
+        },
+        arrow: true,
+        when: {
+          show() {
+            const content = document.querySelector('.shepherd-content');
+            const text = document.querySelector('.shepherd-text');
+            const footer = document.querySelector('.shepherd-footer');
+            const buttons = document.querySelectorAll('.shepherd-button');
+            
+            if (content) content.classList.add('p-6');
+            if (text) text.classList.add('mb-4', 'leading-normal');
+            if (footer) footer.classList.add('flex', 'justify-end', 'gap-2');
+            
+            buttons.forEach(button => {
+              button.classList.add(
+                'inline-flex',
+                'items-center',
+                'justify-center',
+                'rounded-md',
+                'text-sm',
+                'font-medium',
+                'transition-colors',
+                'focus-visible:outline-none',
+                'focus-visible:ring-2',
+                'focus-visible:ring-ring',
+                'disabled:pointer-events-none',
+                'disabled:opacity-50',
+                'h-9',
+                'px-4',
+                'py-2'
+              );
+            });
+            
+            // Style primary button
+            const nextButton = buttons[buttons.length - 1];
+            if (nextButton) {
+              nextButton.classList.add(
+                'bg-primary',
+                'text-primary-foreground',
+                'hover:bg-primary/90'
+              );
+            }
+            
+            // Style back button
+            const backButton = buttons[0];
+            if (backButton && buttons.length > 1) {
+              backButton.classList.add(
+                'border',
+                'border-input',
+                'bg-background',
+                'hover:bg-accent',
+                'hover:text-accent-foreground'
+              );
+            }
+          }
+        }
+      }
+    });
+
+    newTour.addSteps([
+      {
+        id: 'sidebar',
+        text: 'Toggle the sidebar to view all pages in the document',
+        attachTo: {
+          element: '.sidebar-toggle',
+          on: 'right'
+        },
+        buttons: [
+          {
+            text: 'Next',
+            action: () => newTour.next()
+          }
+        ],
+        beforeShowPromise: function() {
+          return new Promise<void>(resolve => {
+            if (document.querySelector('.sidebar-toggle')) {
+              resolve();
+            } else {
+              const observer = new MutationObserver((mutations, obs) => {
+                if (document.querySelector('.sidebar-toggle')) {
+                  obs.disconnect();
+                  resolve();
+                }
+              });
+              
+              observer.observe(document.body, {
+                childList: true,
+                subtree: true
+              });
+
+              // Timeout after 5 seconds to prevent infinite waiting
+              setTimeout(() => {
+                observer.disconnect();
+                resolve();
+              }, 5000);
+            }
+          });
+        }
+      },
+      {
+        id: 'navigation',
+        text: 'Navigate through pages using these controls or your keyboard arrow keys',
+        attachTo: {
+          element: '.page-navigation',
+          on: 'bottom'
+        },
+        buttons: [
+          {
+            text: 'Back',
+            action: () => newTour.back()
+          },
+          {
+            text: 'Next',
+            action: () => newTour.next()
+          }
+        ]
+      },
+      {
+        id: 'download',
+        text: 'Download the document for offline viewing',
+        attachTo: {
+          element: '.download-button',
+          on: 'bottom'
+        },
+        buttons: [
+          {
+            text: 'Back',
+            action: () => newTour.back()
+          },
+          {
+            text: 'Next',
+            action: () => newTour.next()
+          }
+        ]
+      },
+      {
+        id: 'theme',
+        text: 'Switch between light and dark mode for comfortable reading',
+        attachTo: {
+          element: '.theme-switcher button',
+          on: 'bottom'
+        },
+        buttons: [
+          {
+            text: 'Back',
+            action: () => newTour.back()
+          },
+          {
+            text: 'Next',
+            action: () => newTour.next()
+          }
+        ]
+      },
+      {
+        id: 'progress',
+        text: 'Track your reading progress here',
+        attachTo: {
+          element: '.progress-bar',
+          on: 'top'
+        },
+        buttons: [
+          {
+            text: 'Back',
+            action: () => newTour.back()
+          },
+          {
+            text: 'Done',
+            action: () => newTour.complete()
+          }
+        ]
+      }
+    ]);
+
+    setTour(newTour);
+  }, []);
+
+  useEffect(() => {
+    if (tour && !localStorage.getItem('tourCompleted') && !isLoading && pdfBlob) {
+      console.log('Tour conditions met, preparing to start tour');
+      
+      // Clear any existing tour state
+      localStorage.removeItem('shepherd-tour');
+      
+      // Only start tour when PDF is loaded and elements are ready
+      const startTour = () => {
+        const elements = [
+          '.sidebar-toggle',
+          '.page-navigation',
+          '.download-button',
+          '.theme-switcher',
+          '.progress-bar'
+        ];
+        
+        // Check if all required elements are present
+        const missingElements = elements.filter(selector => !document.querySelector(selector));
+        
+        if (missingElements.length === 0) {
+          console.log('All elements present, starting tour');
+          requestAnimationFrame(() => {
+            tour.start();
+          });
+        } else {
+          console.log('Missing elements:', missingElements);
+          setTimeout(startTour, 200); // Increased retry interval
+        }
+      };
+      
+      // Start checking after the component has fully mounted
+      setTimeout(startTour, 1000);
+      
+      tour.on('complete', () => {
+        console.log('Tour completed');
+        localStorage.setItem('tourCompleted', 'true');
+      });
+      
+      tour.on('cancel', () => {
+        console.log('Tour cancelled');
+        localStorage.setItem('tourCompleted', 'true');
+      });
+
+      tour.on('start', () => {
+        console.log('Tour started');
+      });
+
+      return () => {
+        tour.complete();
+      };
+    }
+  }, [tour, isLoading, pdfBlob]);
+
+  // Function to manually start the tour
+  const startTourManually = () => {
+    console.log('Manual tour start requested');
+    localStorage.removeItem('tourCompleted');
+    localStorage.removeItem('shepherd-tour');
+    if (tour) {
+      requestAnimationFrame(() => {
+        tour.start();
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -169,9 +426,12 @@ export default function Home() {
     );
   }
 
+  if (error || isLoading) {
+    return null;
+  }
+
   return (
     <div className="flex h-screen bg-background">
-      {/* Left Sidebar - Update mobile styles */}
       <aside className={`${showPreview ? 'w-[240px] md:w-[240px]' : 'w-0'} border-r flex flex-col transition-all duration-300 overflow-hidden fixed md:relative z-20 bg-background h-full`}>
         <div className="flex-1 overflow-y-auto">
           {numPages > 0 && [...Array(numPages)].map((_, index) => (
@@ -202,26 +462,23 @@ export default function Home() {
             </div>
           ))}
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowPreview(!showPreview)}
+          className="mr-2 flex-shrink-0 sidebar-toggle"
+        >
+          {showPreview ? (
+            <RiMenuFoldLine className="h-4 w-4" />
+          ) : (
+            <RiMenuUnfoldLine className="h-4 w-4" />
+          )}
+        </Button>
       </aside>
 
-      {/* Main Content - Add max-width for desktop */}
       <main className="flex-1 flex flex-col w-full overflow-hidden">
-        {/* Top Toolbar - Make more compact on mobile */}
         <div className="h-12 md:h-14 border-b px-2 md:px-4 flex items-center justify-between">
-          {/* Left Controls - Simplified for mobile */}
           <div className="flex items-center space-x-2 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowPreview(!showPreview)}
-              className="mr-2 flex-shrink-0"
-            >
-              {showPreview ? (
-                <RiMenuFoldLine className="h-4 w-4" />
-              ) : (
-                <RiMenuUnfoldLine className="h-4 w-4" />
-              )}
-            </Button>
             <Separator orientation="vertical" className="mx-2 h-6 hidden md:block" />
             <h1 className="font-medium text-sm truncate hidden md:block">Document.pdf</h1>
             <Separator orientation="vertical" className="mx-2 h-6" />
@@ -241,12 +498,11 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Controls - Simplified for mobile */}
           <div className="flex items-center space-x-2 flex-shrink-0">
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8"
+              className="h-8 w-8 download-button"
             >
               <a 
                 href={pdfUrl} 
@@ -264,19 +520,27 @@ export default function Home() {
             >
               <RiFullscreenLine className="h-4 w-4" />
             </Button>
-            <ThemeSwitcher />
+            <div className="theme-switcher">
+              <ThemeSwitcher />
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={startTourManually}
+              className="h-8 w-8"
+            >
+              <RiQuestionLine className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
-        {/* PDF Viewer Area - Update container styles */}
         <div className="flex-1 w-full flex items-center justify-center p-2 md:p-8 pb-16 pdf-container overflow-hidden">
           {error ? (
             <div className="flex items-center justify-center h-[800px] text-destructive">
               {error}
             </div>
           ) : (
-            <div className="relative flex items-center gap-1 md:gap-8 w-full max-w-[1600px] mx-auto">
-              {/* Navigation buttons - make larger on desktop */}
+            <div className="relative flex items-center gap-1 md:gap-8 w-full max-w-[1600px] mx-auto page-navigation">
               <Button
                 variant="ghost"
                 size="icon"
@@ -287,7 +551,6 @@ export default function Home() {
                 <RiArrowLeftSLine className="h-4 w-4 md:h-16 md:w-16 text-foreground/80 hover:text-primary" />
               </Button>
 
-              {/* PDF Container - increase max width */}
               <div className="flex justify-center max-w-full overflow-hidden flex-1">
                 <Document
                   file={pdfBlob}
@@ -316,7 +579,6 @@ export default function Home() {
                 </Document>
               </div>
 
-              {/* Right navigation button - match left button size */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -330,9 +592,8 @@ export default function Home() {
           )}
         </div>
         
-        {/* Reading Progress Bar - Update the styles */}
         {numPages > 0 && (
-          <div className="sticky bottom-[49px] w-full h-2 bg-muted/50 shadow-inner">
+          <div className="progress-bar sticky bottom-[49px] w-full h-2 bg-muted/50 shadow-inner">
             <div 
               className="h-full bg-primary/90 transition-all duration-300 shadow-lg"
               style={{ 
@@ -343,7 +604,6 @@ export default function Home() {
           </div>
         )}
         
-        {/* Footer - Make more compact on mobile */}
         <footer className="sticky bottom-0 left-0 right-0 p-1 md:p-2 bg-background/80 backdrop-blur-sm border-t flex items-center justify-between text-xs md:text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <span className="hidden md:inline">Powered by</span>
