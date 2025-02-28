@@ -1,28 +1,25 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { 
-  RiArrowLeftSLine, 
-  RiArrowRightSLine, 
-  RiDownloadLine, 
-  RiAddLine, 
-  RiSubtractLine,
-  RiFullscreenLine,
+import { Skeleton } from "@/components/ui/skeleton";
+import { useMediaQuery } from '@/hooks/use-media-query';
+import {
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
+  RiDownloadLine, RiFullscreenLine,
   RiMenuFoldLine,
   RiMenuUnfoldLine,
   RiQuestionLine
 } from '@remixicon/react';
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useMediaQuery } from '@/hooks/use-media-query';  
-import Shepherd from 'shepherd.js';
+import { useEffect, useState } from "react";
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 import type { Tour } from 'shepherd.js';
+import Shepherd from 'shepherd.js';
 import 'shepherd.js/dist/css/shepherd.css';
 
 // Configure PDF.js worker correctly
@@ -42,38 +39,38 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [showPreview, setShowPreview] = useState(false);
-  
+
   const pdfUrl = 'https://s22.q4cdn.com/959853165/files/doc_financials/2024/ar/Netflix-10-K-01272025.pdf';
 
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [scale, setScale] = useState<number>(1.0);
 
   const [tour, setTour] = useState<Tour | null>(null);
-  
+
   useEffect(() => {
     const downloadPDF = async () => {
       try {
         const response = await fetch(pdfUrl);
         if (!response.ok) throw new Error('Failed to download PDF');
-        
+
         // Get the total size of the file
         const contentLength = response.headers.get('content-length');
         const total = contentLength ? parseInt(contentLength, 10) : 0;
-        
+
         // Create a new response with a custom reader to track progress
         const reader = response.body?.getReader();
         const chunks: Uint8Array[] = [];
         let receivedLength = 0;
 
         // Read the stream
-        while(true && reader) {
-          const {done, value} = await reader.read();
-          
+        while (true && reader) {
+          const { done, value } = await reader.read();
+
           if (done) break;
-          
+
           chunks.push(value);
           receivedLength += value.length;
-          
+
           // Calculate and set progress
           if (total) {
             setDownloadProgress((receivedLength / total) * 100);
@@ -83,11 +80,11 @@ export default function Home() {
         // Combine all chunks into a single Uint8Array
         const chunksAll = new Uint8Array(receivedLength);
         let position = 0;
-        for(const chunk of chunks) {
+        for (const chunk of chunks) {
           chunksAll.set(chunk, position);
           position += chunk.length;
         }
-        
+
         const blob = new Blob([chunksAll], { type: 'application/pdf' });
         setPdfBlob(blob);
         setError(null);
@@ -123,7 +120,7 @@ export default function Home() {
       if (container && pdfBlob) {
         const containerWidth = container.clientWidth - (isMobile ? 32 : 160);
         const baseScale = containerWidth / 600;
-        
+
         // Larger scale for desktop, smaller for mobile
         setScale(isMobile ? Math.min(baseScale, 0.8) : Math.min(baseScale, 2.0));
       }
@@ -173,11 +170,11 @@ export default function Home() {
             const text = document.querySelector('.shepherd-text');
             const footer = document.querySelector('.shepherd-footer');
             const buttons = document.querySelectorAll('.shepherd-button');
-            
+
             if (content) content.classList.add('p-6');
             if (text) text.classList.add('mb-4', 'leading-normal');
             if (footer) footer.classList.add('flex', 'justify-end', 'gap-2');
-            
+
             buttons.forEach(button => {
               button.classList.add(
                 'inline-flex',
@@ -197,7 +194,7 @@ export default function Home() {
                 'py-2'
               );
             });
-            
+
             // Style primary button
             const nextButton = buttons[buttons.length - 1];
             if (nextButton) {
@@ -207,7 +204,7 @@ export default function Home() {
                 'hover:bg-primary/90'
               );
             }
-            
+
             // Style back button
             const backButton = buttons[0];
             if (backButton && buttons.length > 1) {
@@ -238,7 +235,7 @@ export default function Home() {
             action: () => newTour.next()
           }
         ],
-        beforeShowPromise: function() {
+        beforeShowPromise: function () {
           return new Promise<void>(resolve => {
             if (document.querySelector('.sidebar-toggle')) {
               resolve();
@@ -249,7 +246,7 @@ export default function Home() {
                   resolve();
                 }
               });
-              
+
               observer.observe(document.body, {
                 childList: true,
                 subtree: true
@@ -362,10 +359,10 @@ export default function Home() {
   useEffect(() => {
     if (tour && !localStorage.getItem('tourCompleted') && !isLoading && pdfBlob) {
       console.log('Tour conditions met, preparing to start tour');
-      
+
       // Clear any existing tour state
       localStorage.removeItem('shepherd-tour');
-      
+
       // Only start tour when PDF is loaded and elements are ready
       const startTour = () => {
         const elements = [
@@ -375,10 +372,10 @@ export default function Home() {
           '.theme-switcher',
           '.progress-bar'
         ];
-        
+
         // Check if all required elements are present
         const missingElements = elements.filter(selector => !document.querySelector(selector));
-        
+
         if (missingElements.length === 0) {
           console.log('All elements present, starting tour');
           requestAnimationFrame(() => {
@@ -389,15 +386,15 @@ export default function Home() {
           setTimeout(startTour, 200); // Increased retry interval
         }
       };
-      
+
       // Start checking after the component has fully mounted
       setTimeout(startTour, 1000);
-      
+
       tour.on('complete', () => {
         console.log('Tour completed');
         localStorage.setItem('tourCompleted', 'true');
       });
-      
+
       tour.on('cancel', () => {
         console.log('Tour cancelled');
         localStorage.setItem('tourCompleted', 'true');
@@ -444,8 +441,8 @@ export default function Home() {
         <div className="flex flex-col items-center gap-4 w-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
           <div className="w-full bg-muted rounded-full h-2.5 dark:bg-muted">
-            <div 
-              className="bg-primary h-2.5 rounded-full transition-all duration-300" 
+            <div
+              className="bg-primary h-2.5 rounded-full transition-all duration-300"
               style={{ width: `${downloadProgress}%` }}
             ></div>
           </div>
@@ -466,14 +463,14 @@ export default function Home() {
       <aside className={`${showPreview ? 'w-[240px] md:w-[240px]' : 'w-0'} border-r flex flex-col transition-all duration-300 overflow-hidden fixed md:relative z-20 bg-background h-full`}>
         <div className="flex-1 overflow-y-auto">
           {numPages > 0 && [...Array(numPages)].map((_, index) => (
-            <div 
+            <div
               key={index}
               className={`p-4 hover:bg-accent cursor-pointer border-b
                 ${pageNumber === index + 1 ? 'bg-accent' : ''}`}
               onClick={() => setPageNumber(index + 1)}
             >
-              <Document 
-                file={pdfBlob} 
+              <Document
+                file={pdfBlob}
                 loading={
                   <div className="space-y-2">
                     <Skeleton className="h-[282px] w-[200px]" />
@@ -482,8 +479,8 @@ export default function Home() {
                 }
                 onLoadError={onDocumentLoadError}
               >
-                <Page 
-                  pageNumber={index + 1} 
+                <Page
+                  pageNumber={index + 1}
                   width={200}
                   renderTextLayer={false}
                   renderAnnotationLayer={false}
@@ -530,14 +527,14 @@ export default function Home() {
           </div>
 
           <div className="flex items-center space-x-2 flex-shrink-0">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-8 w-8 download-button"
             >
-              <a 
-                href={pdfUrl} 
-                download 
+              <a
+                href={pdfUrl}
+                download
                 className="flex items-center justify-center"
               >
                 <RiDownloadLine className="h-4 w-4" />
@@ -554,9 +551,9 @@ export default function Home() {
             <div className="theme-switcher">
               <ThemeSwitcher />
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={startTourManually}
               className="h-8 w-8"
             >
@@ -595,8 +592,8 @@ export default function Home() {
                   }
                   className="flex justify-center w-full max-w-5xl mx-auto"
                 >
-                  <Page 
-                    pageNumber={pageNumber} 
+                  <Page
+                    pageNumber={pageNumber}
                     scale={scale}
                     className="shadow-xl max-w-full"
                     renderTextLayer={true}
@@ -622,19 +619,19 @@ export default function Home() {
             </div>
           )}
         </div>
-        
+
         {numPages > 0 && (
           <div className="progress-bar sticky bottom-[49px] w-full h-2 bg-muted/50 shadow-inner">
-            <div 
+            <div
               className="h-full bg-primary/90 transition-all duration-300 shadow-lg"
-              style={{ 
+              style={{
                 width: `${(pageNumber / numPages) * 100}%`,
                 borderRadius: '0 4px 4px 0'
               }}
             />
           </div>
         )}
-        
+
         <footer className="sticky bottom-0 left-0 right-0 p-1 md:p-2 bg-background/80 backdrop-blur-sm border-t flex items-center justify-between text-xs md:text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <span className="hidden md:inline">Powered by</span>
