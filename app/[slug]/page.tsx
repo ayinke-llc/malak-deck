@@ -27,11 +27,16 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 // Define options outside component for better performance
 const options = {
-  //cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
   standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts`
 };
 
-export default function Home() {
+interface PageProps {
+  params: {
+    slug: string;
+  };
+}
+
+export default function PDFViewer({ params }: PageProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +45,7 @@ export default function Home() {
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [showPreview, setShowPreview] = useState(false);
 
+  // TODO: Replace with actual PDF URL based on slug
   const pdfUrl = 'https://s22.q4cdn.com/959853165/files/doc_financials/2024/ar/Netflix-10-K-01272025.pdf';
 
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -508,7 +514,7 @@ export default function Home() {
               )}
             </Button>
             <Separator orientation="vertical" className="mx-2 h-6 hidden md:block" />
-            <h1 className="font-medium text-sm truncate hidden md:block">Document.pdf</h1>
+            <h1 className="font-medium text-sm truncate hidden md:block">{params.slug}</h1>
             <Separator orientation="vertical" className="mx-2 h-6" />
             <div className="flex items-center space-x-2 flex-shrink-0">
               <Input
@@ -650,4 +656,4 @@ export default function Home() {
       </main>
     </div>
   );
-}
+} 
