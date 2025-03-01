@@ -146,66 +146,42 @@ export default function PDFViewer({ params }: PageProps) {
     queryFn: async () => {
       try {
         const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/v1/public/decks/${slug}`;
-        console.log('API URL:', apiUrl);
-        
-        console.log('Fetching PDF metadata for slug:', slug);
         const response = await fetch(apiUrl);
-
-        console.log('API Response status:', response.status);
         
-        // Log raw response for debugging
         const responseText = await response.text();
-        console.log('Raw API Response:', responseText);
-        
         let data;
         try {
           data = JSON.parse(responseText);
         } catch (parseError) {
-          console.error('Failed to parse API response:', parseError);
           throw new Error('Invalid JSON response from API');
         }
         
-        console.log('Parsed API Response:', data);
-        
-        // Validate the response structure
         if (!data || typeof data !== 'object') {
-          console.error('Invalid response format:', data);
           throw new Error('Invalid API response format');
         }
 
         if (!data.deck) {
-          console.error('Missing deck in response:', data);
           throw new Error('Deck not found in API response');
         }
 
         if (!data.deck.object_link) {
-          console.error('Missing object_link in deck:', data.deck);
           throw new Error('PDF URL not found in deck data');
         }
 
         return data;
       } catch (error) {
-        console.error('Query error:', error);
         if (error instanceof Error) {
-          console.error('Error details:', error.message);
-          console.error('Error stack:', error.stack);
+          throw error;
         }
-        throw error;
+        throw new Error('Failed to fetch deck data');
       }
     },
     retry: 1,
     retryDelay: 1000,
   });
 
-  // Log the entire response and URL for debugging
-  useEffect(() => {
-    console.log('Current PDF Data:', pdfData);
-    console.log('Current PDF URL:', pdfData?.deck?.object_link);
-  }, [pdfData]);
-
   const pdfUrl = pdfData?.deck?.object_link;
-  console.log('PDF URL from response:', pdfUrl);
-  
+
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [scale, setScale] = useState<number>(1.0);
 
@@ -213,20 +189,16 @@ export default function PDFViewer({ params }: PageProps) {
 
   useEffect(() => {
     if (!pdfUrl) {
-      console.log('Waiting for PDF URL to be available...');
       return;
     }
 
     const downloadPDF = async () => {
-      console.log('Starting PDF download from:', pdfUrl);
       setIsPdfLoading(true);
       try {
         const response = await fetch(pdfUrl);
-        console.log('PDF download response status:', response.status);
         if (!response.ok) throw new Error('Failed to download PDF');
 
         const contentLength = response.headers.get('content-length');
-        console.log('PDF content length:', contentLength);
         const total = contentLength ? parseInt(contentLength, 10) : 0;
 
         const reader = response.body?.getReader();
@@ -257,7 +229,6 @@ export default function PDFViewer({ params }: PageProps) {
         setPdfBlob(blob);
         setError(null);
       } catch (err) {
-        console.error('Error downloading PDF:', err);
         setError('Error downloading PDF. Please try again later.');
       } finally {
         setIsPdfLoading(false);
@@ -303,7 +274,6 @@ export default function PDFViewer({ params }: PageProps) {
   }
 
   function onDocumentLoadError(error: Error) {
-    console.error('Error loading PDF:', error);
     setError('Error loading PDF. Please try again later.');
   }
 
@@ -524,8 +494,6 @@ export default function PDFViewer({ params }: PageProps) {
 
   useEffect(() => {
     if (tour && !localStorage.getItem('tourCompleted') && !isPdfLoading && pdfBlob) {
-      console.log('Tour conditions met, preparing to start tour');
-
       // Clear any existing tour state
       localStorage.removeItem('shepherd-tour');
 
@@ -543,31 +511,22 @@ export default function PDFViewer({ params }: PageProps) {
         const missingElements = elements.filter(selector => !document.querySelector(selector));
 
         if (missingElements.length === 0) {
-          console.log('All elements present, starting tour');
           requestAnimationFrame(() => {
             tour.start();
           });
         } else {
-          console.log('Missing elements:', missingElements);
-          setTimeout(startTour, 200); // Increased retry interval
+          setTimeout(startTour, 200);
         }
       };
 
-      // Start checking after the component has fully mounted
       setTimeout(startTour, 1000);
 
       tour.on('complete', () => {
-        console.log('Tour completed');
         localStorage.setItem('tourCompleted', 'true');
       });
 
       tour.on('cancel', () => {
-        console.log('Tour cancelled');
         localStorage.setItem('tourCompleted', 'true');
-      });
-
-      tour.on('start', () => {
-        console.log('Tour started');
       });
 
       return () => {
@@ -578,7 +537,6 @@ export default function PDFViewer({ params }: PageProps) {
 
   // Function to manually start the tour
   const startTourManually = () => {
-    console.log('Manual tour start requested');
     localStorage.removeItem('tourCompleted');
     localStorage.removeItem('shepherd-tour');
     if (tour) {
