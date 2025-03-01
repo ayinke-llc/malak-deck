@@ -1,57 +1,76 @@
 import { Metadata, ResolvingMetadata } from 'next';
 
 type Props = {
-  params: { slug: string };
-  children?: React.ReactNode;
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export async function generateMetadata(
-  { params }: { params: { slug: string } },
+  { params, searchParams }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  const slug = params.slug;
+  const { slug } = await params;
 
   // Fetch deck data
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/public/decks/${slug}`);
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/public/decks/${slug}`, {
+      next: { revalidate: 0 }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch deck');
+    }
+
     const data = await response.json();
     const deck = data.deck;
 
     const title = deck.title || 'View PDF';
     const description = `View ${title} on Malak`;
-
-    // Generate preview image URL - you can implement this based on your needs
     const previewImageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/og?title=${encodeURIComponent(title)}`;
 
     return {
-      title,
+      metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+      title: {
+        default: title,
+        template: `%s | Malak`
+      },
       description,
       openGraph: {
         title,
         description,
-        images: [previewImageUrl],
+        images: [
+          {
+            url: previewImageUrl,
+            width: 1200,
+            height: 630,
+            alt: title
+          }
+        ],
         type: 'article',
+        siteName: 'Malak',
       },
       twitter: {
         card: 'summary_large_image',
         title,
         description,
         images: [previewImageUrl],
+        creator: '@malak',
       },
     };
   } catch (error) {
     // Fallback metadata if fetch fails
     return {
+      metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
       title: 'View PDF - Malak',
       description: 'View PDF document on Malak',
     };
   }
 }
 
-export default function Layout({
+export default async function Layout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  return children;
+  return <>{children}</>;
 } 
