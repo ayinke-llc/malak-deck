@@ -12,15 +12,17 @@ import {
   RiDownloadLine, RiFullscreenLine,
   RiMenuFoldLine,
   RiMenuUnfoldLine,
-  RiQuestionLine
+  RiQuestionLine,
+  RiAlertLine
 } from '@remixicon/react';
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import type { Tour } from 'shepherd.js';
 import Shepherd from 'shepherd.js';
 import 'shepherd.js/dist/css/shepherd.css';
+import { useQuery } from '@tanstack/react-query';
 
 // Configure PDF.js worker correctly
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -31,44 +33,206 @@ const options = {
 };
 
 interface PageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
+}
+
+interface MalakPasswordDeckPreferences {
+  enabled: boolean;
+  password: string;
+}
+
+interface MalakDeckPreference {
+  created_at: string;
+  created_by: string;
+  deck_id: string;
+  enable_downloading: boolean;
+  expires_at: string;
+  id: string;
+  password: MalakPasswordDeckPreferences;
+  reference: string;
+  require_email: boolean;
+  updated_at: string;
+  workspace_id: string;
+}
+
+interface MalakPublicDeck {
+  created_at: string;
+  deck_size: number;
+  is_archived: boolean;
+  object_link: string;
+  preferences: MalakDeckPreference;
+  reference: string;
+  short_link: string;
+  title: string;
+  updated_at: string;
+  workspace_id: string;
+}
+
+interface APIResponse {
+  deck: MalakPublicDeck;
+}
+
+function ErrorDisplay({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+      <div className="max-w-md w-full space-y-8">
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-orange-500/10 blur-3xl rounded-full" />
+
+          <div className="relative bg-card border shadow-xl rounded-2xl p-6 backdrop-blur-sm">
+            <div className="flex flex-col items-center text-center space-y-6">
+              <div className="relative">
+                <div className="absolute inset-0 bg-destructive/20 animate-ping rounded-full" />
+                <div className="relative rounded-full bg-destructive/10 p-4">
+                  <RiAlertLine className="w-8 h-8 text-destructive animate-pulse" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-xl font-semibold tracking-tight">Unable to load PDF</h2>
+                <p className="text-muted-foreground text-sm leading-relaxed max-w-[90%] mx-auto">
+                  {message}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Button
+                  onClick={() => window.location.reload()}
+                  className="w-full sm:w-auto gap-2 group"
+                >
+                  <span className="relative">
+                    <span className="animate-spin-slow absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      ↻
+                    </span>
+                    <span className="group-hover:opacity-0 transition-opacity">
+                      Try again
+                    </span>
+                  </span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => window.history.back()}
+                  className="w-full sm:w-auto"
+                >
+                  Go back
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground pt-4 border-t w-full">
+                If the problem persists, please try again later or contact support
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function PDFViewer({ params }: PageProps) {
+  const { slug } = use(params);
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [showPreview, setShowPreview] = useState(false);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
 
-  // TODO: Replace with actual PDF URL based on slug
-  const pdfUrl = 'https://s22.q4cdn.com/959853165/files/doc_financials/2024/ar/Netflix-10-K-01272025.pdf';
+  const { data: pdfData, isError: isPdfError, error: queryError, isLoading: isApiLoading } = useQuery<APIResponse>({
+    queryKey: ['pdf', slug],
+    queryFn: async () => {
+      try {
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/v1/public/decks/${slug}`;
+        console.log('API URL:', apiUrl);
+        
+        console.log('Fetching PDF metadata for slug:', slug);
+        const response = await fetch(apiUrl);
 
+        console.log('API Response status:', response.status);
+        
+        // Log raw response for debugging
+        const responseText = await response.text();
+        console.log('Raw API Response:', responseText);
+        
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Failed to parse API response:', parseError);
+          throw new Error('Invalid JSON response from API');
+        }
+        
+        console.log('Parsed API Response:', data);
+        
+        // Validate the response structure
+        if (!data || typeof data !== 'object') {
+          console.error('Invalid response format:', data);
+          throw new Error('Invalid API response format');
+        }
+
+        if (!data.deck) {
+          console.error('Missing deck in response:', data);
+          throw new Error('Deck not found in API response');
+        }
+
+        if (!data.deck.object_link) {
+          console.error('Missing object_link in deck:', data.deck);
+          throw new Error('PDF URL not found in deck data');
+        }
+
+        return data;
+      } catch (error) {
+        console.error('Query error:', error);
+        if (error instanceof Error) {
+          console.error('Error details:', error.message);
+          console.error('Error stack:', error.stack);
+        }
+        throw error;
+      }
+    },
+    retry: 1,
+    retryDelay: 1000,
+  });
+
+  // Log the entire response and URL for debugging
+  useEffect(() => {
+    console.log('Current PDF Data:', pdfData);
+    console.log('Current PDF URL:', pdfData?.deck?.object_link);
+  }, [pdfData]);
+
+  const pdfUrl = pdfData?.deck?.object_link;
+  console.log('PDF URL from response:', pdfUrl);
+  
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [scale, setScale] = useState<number>(1.0);
 
   const [tour, setTour] = useState<Tour | null>(null);
 
   useEffect(() => {
+    if (!pdfUrl) {
+      console.log('Waiting for PDF URL to be available...');
+      return;
+    }
+
     const downloadPDF = async () => {
+      console.log('Starting PDF download from:', pdfUrl);
+      setIsPdfLoading(true);
       try {
         const response = await fetch(pdfUrl);
+        console.log('PDF download response status:', response.status);
         if (!response.ok) throw new Error('Failed to download PDF');
 
-        // Get the total size of the file
         const contentLength = response.headers.get('content-length');
+        console.log('PDF content length:', contentLength);
         const total = contentLength ? parseInt(contentLength, 10) : 0;
 
-        // Create a new response with a custom reader to track progress
         const reader = response.body?.getReader();
         const chunks: Uint8Array[] = [];
         let receivedLength = 0;
 
-        // Read the stream
         while (true && reader) {
           const { done, value } = await reader.read();
 
@@ -77,13 +241,11 @@ export default function PDFViewer({ params }: PageProps) {
           chunks.push(value);
           receivedLength += value.length;
 
-          // Calculate and set progress
           if (total) {
             setDownloadProgress((receivedLength / total) * 100);
           }
         }
 
-        // Combine all chunks into a single Uint8Array
         const chunksAll = new Uint8Array(receivedLength);
         let position = 0;
         for (const chunk of chunks) {
@@ -98,14 +260,13 @@ export default function PDFViewer({ params }: PageProps) {
         console.error('Error downloading PDF:', err);
         setError('Error downloading PDF. Please try again later.');
       } finally {
-        setIsLoading(false);
+        setIsPdfLoading(false);
       }
     };
 
     downloadPDF();
   }, [pdfUrl]);
 
-  // Add keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') {
@@ -119,7 +280,6 @@ export default function PDFViewer({ params }: PageProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [numPages, pageNumber]); // Dependencies needed for changePage logic
 
-  // Update the scale calculation effect
   useEffect(() => {
     function updateScale() {
       const container = document.querySelector('.pdf-container');
@@ -363,7 +523,7 @@ export default function PDFViewer({ params }: PageProps) {
   }, []);
 
   useEffect(() => {
-    if (tour && !localStorage.getItem('tourCompleted') && !isLoading && pdfBlob) {
+    if (tour && !localStorage.getItem('tourCompleted') && !isPdfLoading && pdfBlob) {
       console.log('Tour conditions met, preparing to start tour');
 
       // Clear any existing tour state
@@ -414,7 +574,7 @@ export default function PDFViewer({ params }: PageProps) {
         tour.complete();
       };
     }
-  }, [tour, isLoading, pdfBlob]);
+  }, [tour, isPdfLoading, pdfBlob]);
 
   // Function to manually start the tour
   const startTourManually = () => {
@@ -441,27 +601,39 @@ export default function PDFViewer({ params }: PageProps) {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [tour]); // Add tour as a dependency since we use startTourManually
 
-  if (isLoading) {
+  // If we're loading the API data or the PDF, or if we don't have a URL yet, show loading
+  if (isApiLoading || isPdfLoading || !pdfUrl) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4 w-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
           <div className="w-full bg-muted rounded-full h-2.5 dark:bg-muted">
-            <div
-              className="bg-primary h-2.5 rounded-full transition-all duration-300"
-              style={{ width: `${downloadProgress}%` }}
-            ></div>
+            {isPdfLoading && (
+              <div
+                className="bg-primary h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${downloadProgress}%` }}
+              ></div>
+            )}
           </div>
           <p className="text-muted-foreground">
-            Downloading PDF... {downloadProgress.toFixed(0)}%
+            {isApiLoading 
+              ? 'Loading deck details...' 
+              : !pdfUrl
+                ? 'Preparing deck...'
+                : isPdfLoading 
+                  ? `Downloading PDF... ${downloadProgress.toFixed(0)}%`
+                  : 'Preparing PDF...'}
           </p>
         </div>
       </div>
     );
   }
 
-  if (error || isLoading) {
-    return null;
+  // Only show error UI for actual PDF loading errors
+  if (error) {
+    return (
+      <ErrorDisplay message={error} />
+    );
   }
 
   return (
@@ -514,7 +686,7 @@ export default function PDFViewer({ params }: PageProps) {
               )}
             </Button>
             <Separator orientation="vertical" className="mx-2 h-6 hidden md:block" />
-            <h1 className="font-medium text-sm truncate hidden md:block">{params.slug}</h1>
+            <h1 className="font-medium text-sm truncate hidden md:block">{slug}</h1>
             <Separator orientation="vertical" className="mx-2 h-6" />
             <div className="flex items-center space-x-2 flex-shrink-0">
               <Input
