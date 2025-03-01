@@ -771,7 +771,7 @@ export default function PDFViewer({ params }: PageProps) {
         <footer className="sticky bottom-0 left-0 right-0 p-1 md:p-2 bg-background/80 backdrop-blur-sm border-t flex items-center justify-between text-xs md:text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <span className="hidden md:inline">Powered by</span>
-            <span>Malak</span>
+            <a href="https://malak.vc" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">Malak</a>
             {numPages > 0 && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
                 {((pageNumber / numPages) * 100).toFixed(0)}%
