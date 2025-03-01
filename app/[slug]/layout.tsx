@@ -1,11 +1,12 @@
 import { Metadata, ResolvingMetadata } from 'next';
 
-interface Props {
-  params: { slug: string }
+type Props = {
+  params: { slug: string };
+  children?: React.ReactNode;
 }
 
 export async function generateMetadata(
-  { params }: Props,
+  { params }: { params: { slug: string } },
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const slug = params.slug;
