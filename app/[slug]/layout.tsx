@@ -1,22 +1,20 @@
-import { Metadata, ResolvingMetadata } from 'next';
+import { Metadata } from 'next';
 
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export async function generateMetadata(
-  { params, searchParams }: Props,
-  parent: ResolvingMetadata
+  { params }: Props
 ): Promise<Metadata> {
-  const { slug } = await params;
 
-  // Fetch deck data
+  const slug = (await params).slug
+
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/public/decks/${slug}`, {
       next: { revalidate: 0 }
     });
-    
+
     if (!response.ok) {
       throw new Error('Failed to fetch deck');
     }
@@ -73,4 +71,4 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   return <>{children}</>;
-} 
+}
