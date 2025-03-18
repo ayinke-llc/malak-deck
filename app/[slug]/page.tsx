@@ -1103,6 +1103,16 @@ export default function PDFViewer({ params }: PageProps) {
         className={`${showPreview ? "w-[240px] md:w-[240px]" : "w-0"
           } border-r flex flex-col transition-all duration-300 overflow-hidden fixed md:relative z-20 bg-background h-full`}
       >
+        {showPreview && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowPreview(false)}
+            className="absolute right-2 top-2 z-30 md:hidden bg-background/80 backdrop-blur-sm hover:bg-background"
+          >
+            <RiMenuFoldLine className="h-4 w-4" />
+          </Button>
+        )}
         <div className="flex-1 overflow-y-auto">
           {numPages > 0 &&
             [...Array(numPages)].map((_, index) => (
