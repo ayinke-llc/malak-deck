@@ -26,6 +26,9 @@ import {
   RiMenuFoldLine,
   RiMenuUnfoldLine,
   RiQuestionLine,
+  RiZoomInLine,
+  RiZoomOutLine,
+  RiRestartLine,
 } from "@remixicon/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
@@ -418,6 +421,7 @@ export default function PDFViewer({ params }: PageProps) {
 
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [scale, setScale] = useState<number>(1.0);
+  const [customZoom, setCustomZoom] = useState<number>(100);
 
   const [tour, setTour] = useState<Tour | null>(null);
 
@@ -461,6 +465,15 @@ export default function PDFViewer({ params }: PageProps) {
         changePage(1);
       } else if (e.key === "ArrowLeft") {
         changePage(-1);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "=") {
+        e.preventDefault();
+        setCustomZoom(prev => Math.min(prev + 10, 200));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "-") {
+        e.preventDefault();
+        setCustomZoom(prev => Math.max(prev - 10, 50));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
+        e.preventDefault();
+        setCustomZoom(100);
       }
     };
 
@@ -474,10 +487,13 @@ export default function PDFViewer({ params }: PageProps) {
       if (container && pdfBlob) {
         const containerWidth = container.clientWidth - (isMobile ? 32 : 160);
         const baseScale = containerWidth / 600;
+        const zoomScale = customZoom / 100;
 
         // Larger scale for desktop, smaller for mobile
         setScale(
-          isMobile ? Math.min(baseScale, 0.8) : Math.min(baseScale, 2.0)
+          isMobile 
+            ? Math.min(baseScale * zoomScale, 0.8 * zoomScale) 
+            : Math.min(baseScale * zoomScale, 2.0 * zoomScale)
         );
       }
     }
@@ -485,7 +501,7 @@ export default function PDFViewer({ params }: PageProps) {
     window.addEventListener("resize", updateScale);
     updateScale();
     return () => window.removeEventListener("resize", updateScale);
-  }, [isMobile, pdfBlob]);
+  }, [isMobile, pdfBlob, customZoom]);
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
@@ -956,6 +972,18 @@ export default function PDFViewer({ params }: PageProps) {
     }
   };
 
+  const handleZoomIn = () => {
+    setCustomZoom(prev => Math.min(prev + 10, 200));
+  };
+
+  const handleZoomOut = () => {
+    setCustomZoom(prev => Math.max(prev - 10, 50));
+  };
+
+  const handleZoomReset = () => {
+    setCustomZoom(100);
+  };
+
   if (isPdfError) {
     const errorMessage =
       queryError instanceof Error
@@ -1192,6 +1220,38 @@ export default function PDFViewer({ params }: PageProps) {
           </div>
 
           <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className="flex items-center space-x-1 mr-2 border rounded-md">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleZoomOut}
+                className="h-8 w-8"
+                title="Zoom Out (Ctrl/Cmd -)"
+              >
+                <RiZoomOutLine className="h-4 w-4" />
+              </Button>
+              <span className="px-2 text-sm tabular-nums">
+                {customZoom}%
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleZoomIn}
+                className="h-8 w-8"
+                title="Zoom In (Ctrl/Cmd +)"
+              >
+                <RiZoomInLine className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleZoomReset}
+                className="h-8 w-8"
+                title="Reset Zoom (Ctrl/Cmd 0)"
+              >
+                <RiRestartLine className="h-4 w-4" />
+              </Button>
+            </div>
             {pdfData?.deck?.preferences?.enable_downloading ? (
               <Button
                 variant="ghost"
